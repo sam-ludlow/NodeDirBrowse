@@ -19,7 +19,7 @@ var server = http.createServer(function (req, res) {
     }
 
     //  The current directory is the url
-    var path = req.url;
+    var path = decodeURI(req.url);
 
     //  If a file (download) link
     if (path.endsWith('?DOWNLOAD') == true) {
@@ -52,7 +52,7 @@ var server = http.createServer(function (req, res) {
 
     res.writeHead(200, {'Content-Type': 'text/html'});
     
-    res.write('<h1>' + req.url + '</h1>');
+    res.write('<h1>' + path + '</h1>');
 
     //  Provide an up directory link
 
@@ -143,7 +143,7 @@ function MakeTable(items, path, onlyDirectories)
             continue;
 
         // Prepare the link, if not a directory append a download command
-        var link = fullPath;
+        var link = encodeURI(fullPath);
         if (stats.isDirectory() == false)
             link += '?DOWNLOAD';
 
