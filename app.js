@@ -24,27 +24,14 @@ var server = http.createServer(function (req, res) {
     //  If a file (download) link
     if (path.endsWith('?DOWNLOAD') == true) {
         
-        path = path.substring(0, path.length - 9);
+        SendFile(path, 9, res, 'application/octet-stream');
+        return;
+    }
 
-        //  Open read Stream to file
-        var readStream = fs.createReadStream(path);
-        
-        //  Display error page if can't read file
-        readStream.on('error', function(err) {
+    //  If a text file link
+    if (path.endsWith('?TEXT') == true) {
 
-            res.writeHead(200, {'Content-Type': 'text/html'});
-
-            res.write('<h1>Error accessing file</h1>');
-            res.write('<p style="color:red;">' + err.toString() + '</p>');
-            res.write('<p>Click back in your browser</p>');
-            
-            return res.end();
-        });
-
-        //  Send file to client
-        res.writeHead(200, {'Content-Type': 'application/octet-stream'});
-        readStream.pipe(res);
-
+        SendFile(path, 5, res, 'text/plain');
         return;
     }
 
@@ -143,9 +130,10 @@ function MakeTable(items, path, onlyDirectories)
             continue;
 
         // Prepare the link, if not a directory append a download command
-        var link = encodeURI(fullPath);
+        var rawLink = encodeURI(fullPath);
+        var link = rawLink;
         if (stats.isDirectory() == false)
-            link += '?DOWNLOAD';
+            link += '?TEXT';
 
         result += '<tr>';
         result += '<td>';
@@ -167,7 +155,13 @@ function MakeTable(items, path, onlyDirectories)
                 {
                     text = DateFormat(stats[propName]);
                 } else {
-                    text = stats[propName];
+
+                    if (propName == 'size' && onlyDirectories == false) {
+                        text = '<a href="' + rawLink + '?DOWNLOAD">' + stats[propName] + '</a>'
+                    } else {
+                        text = stats[propName];
+                    }
+                    
                 }
             }
             result += '<td>' + text + '</td>';
@@ -205,4 +199,30 @@ function DateFormat(d)
 function PadTwo(num)
 {
     return num.toString().padStart(2, '0');
+}
+
+function SendFile(path, trimLength, res, contentType) {
+
+    path = path.substring(0, path.length - trimLength);
+
+    //  Open read Stream to file
+    var readStream = fs.createReadStream(path);
+    
+    //  Display error page if can't read file
+    readStream.on('error', function(err) {
+    
+        res.writeHead(200, {'Content-Type': 'text/html'});
+    
+        res.write('<h1>Error accessing file</h1>');
+        res.write('<p style="color:red;">' + err.toString() + '</p>');
+        res.write('<p>Click back in your browser</p>');
+                
+        res.end();
+
+        return;
+    });
+    
+    //  Send file to client
+    res.writeHead(200, {'Content-Type': contentType});
+    readStream.pipe(res);
 }
